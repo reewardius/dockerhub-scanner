@@ -22,6 +22,7 @@ Results are presented in the terminal and exported as CSV files.
 - ✅ Verbose/debug mode available (`-v`)
 - ✅ Telegram notification support (commented, but ready)
 
+![Banner](image.png)
 ---
 
 ## ⚡️ Installation
