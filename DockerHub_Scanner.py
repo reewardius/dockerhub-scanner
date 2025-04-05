@@ -17,7 +17,7 @@ import sys
 import time
 import json
 import csv
-from datetime import datetime
+from datetime import datetime, timedelta
 from prettytable import PrettyTable  # pip install prettytable (если нет)
 
 def print_banner():
@@ -51,6 +51,7 @@ def run_cmd(cmd):
 
 def fetch_repositories(domain):
     page, repositories = 1, []
+    one_year_ago = datetime.now() - timedelta(days=365)  # Один год назад
     log(f"[+] Fetching page {page}...")
 
     while True:
@@ -63,12 +64,15 @@ def fetch_repositories(domain):
         if not results: break
 
         for repo in results:
-            repositories.append(repo['name'])
+            # Преобразуем дату last_updated в объект datetime
+            last_updated = datetime.fromisoformat(repo['last_updated'].replace("Z", "+00:00"))
+            if last_updated >= one_year_ago:  # Фильтруем по дате
+                repositories.append(repo['name'])
 
         if not data.get('next'): break
         page += 1
 
-    log(f"[+] Found repositories: {len(repositories)}")
+    log(f"[+] Found repositories updated within the last year: {len(repositories)}")
     for repo in repositories:
         print(f"    - {domain}/{repo}")
     return repositories
