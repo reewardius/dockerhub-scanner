@@ -33,6 +33,7 @@ def print_banner():
 parser = argparse.ArgumentParser(description="DockerHub Scanner by clevergod (@securixy_kz)")
 parser.add_argument('-d', '--domain', help='DockerHub namespace (example: tesla)')
 parser.add_argument('-i', '--image', help='Specific DockerHub image (example: tesla/fleet-telemetry)')
+parser.add_argument('-f', '--file', help='File with list of domains (one per line)')
 parser.add_argument('-t', '--tag', default='latest', help='Docker image tag (default: latest)')
 parser.add_argument('-v', '--verbose', action='store_true', help='Enable verbose/debug output')
 parser.add_argument('--keep', action='store_true', help='Keep extracted/tar files (default: delete them)')
@@ -220,20 +221,30 @@ def main():
     print_banner()
     reports = []
 
-    if args.domain:
-        repos = fetch_repositories(args.domain)
-        if not repos: log("[-] No repositories found"); sys.exit(1)
+    if args.file:
+        with open(args.file, 'r') as file:
+            domains = file.readlines()
+        domains = [domain.strip() for domain in domains]
+        for domain in domains:
+            log(f"[+] Scanning domain: {domain}")
+            repos = fetch_repositories(domain)
+            if not repos: log(f"[-] No repositories found for {domain}"); continue
 
-        choice = input("[?] Do you want to scan all listed repositories? (y/N): ").strip().lower()
-        if choice == 'y':
             for repo in repos:
-                image = f"{args.domain}/{repo}"
-                scan_image(image, args.tag, args.domain, reports)
-            save_csv(reports, args.domain)
+                image = f"{domain}/{repo}"
+                scan_image(image, args.tag, domain, reports)
+            save_csv(reports, domain)
             print_final_table(reports)
-        else:
-            log("[+] Exiting. Use -i <image> to scan specific repo.")
-            sys.exit(0)
+
+    elif args.domain:
+        repos = fetch_repositories(args.domain)
+        if not repos: log(f"[-] No repositories found for {args.domain}"); sys.exit(1)
+
+        for repo in repos:
+            image = f"{args.domain}/{repo}"
+            scan_image(image, args.tag, args.domain, reports)
+        save_csv(reports, args.domain)
+        print_final_table(reports)
 
     elif args.image:
         scan_image(args.image, args.tag, args.image.split('/')[0], reports)
@@ -241,8 +252,7 @@ def main():
         print_final_table(reports)
 
     else:
-        log("[-] Please provide either --domain (-d) or --image (-i). Use -h for help.")
-        sys.exit(1)
+        log("[-] Please provide either a domain (-d) or an image (-i).")
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
